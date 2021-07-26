@@ -6,7 +6,9 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
-#include <string>  
+#include <string>
+#include <BLE2902.h>
+ 
 
 
 // See the following for generating UUIDs:
@@ -24,7 +26,7 @@ BLECharacteristic* pCharacteristicPULSE = NULL;
 
 BLECharacteristic* pCharacteristicHUM = NULL;
 
-int count = 0;
+uint8_t count = 0;
 
 class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
@@ -45,7 +47,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 void setup() {
   Serial.begin(115200);
 
-  BLEDevice::init("MyESP32");
+  BLEDevice::init("iRUN");
   BLEServer *pServer = BLEDevice::createServer();
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -53,24 +55,28 @@ void setup() {
   pCharacteristicTMP = pService->createCharacteristic(
                                          TMP_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
                                        );
+  pCharacteristicTMP->addDescriptor(new BLE2902());
   pCharacteristicTMP->setCallbacks(new MyCallbacks());
 
   //PULSE
   pCharacteristicPULSE = pService->createCharacteristic(
                                          PULSE_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
                                        );
+  
+  pCharacteristicPULSE->addDescriptor(new BLE2902());
   pCharacteristicPULSE->setCallbacks(new MyCallbacks());
 
   //HUM
   pCharacteristicHUM = pService->createCharacteristic(
                                          HUM_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
                                        );
+  pCharacteristicHUM->addDescriptor(new BLE2902());
   pCharacteristicHUM->setCallbacks(new MyCallbacks());
   
   pService->start();
@@ -80,8 +86,8 @@ void setup() {
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
 
   BLEAdvertisementData adv;
-  adv.setName("MyESP32");
-  //adv.setCompleteServices(BLEUUID(SERVICE_UUID));
+  adv.setName("iRUN");
+  //adv.setCompleteServices(BLEUUID(SERVICE_UadUID));
   pAdvertising->setAdvertisementData(adv);
 
   BLEAdvertisementData adv2;
@@ -97,9 +103,11 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   count = count + 1;
+  uint8_t countt = count/10+48;
+  Serial.println(countt);
   //String test = "toto";
   //TMP
-  pCharacteristicTMP->setValue("temp");
+  pCharacteristicTMP->setValue(&countt, 1);
   pCharacteristicTMP->notify();
   //PULSE
   pCharacteristicPULSE->setValue("pulse");
