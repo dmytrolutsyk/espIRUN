@@ -1,18 +1,31 @@
-/*
-    Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleWrite.cpp
-    Ported to Arduino ESP32 by Evandro Copercini
-*/
-
+#include "DHT.h"
+#include <Adafruit_NeoPixel.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <string>
 #include <BLE2902.h>
+
+#define LEDPIN 16
+#define NUMPIXELS 9
+#define PULSEPIN 15
+
+
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
+
+
+#define DHTPIN 4     
  
 
+#define DHTTYPE DHT11   // DHT 11
+int lightPin = 0;
+int isOn = 0;
 
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
+DHT dht(DHTPIN, DHTTYPE);
+
+
+int averageTreshold = 0 ;
 
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 
@@ -25,8 +38,6 @@ BLECharacteristic* pCharacteristicTMP = NULL;
 BLECharacteristic* pCharacteristicPULSE = NULL;
 
 BLECharacteristic* pCharacteristicHUM = NULL;
-
-uint8_t count = 0;
 
 class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
@@ -44,8 +55,20 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     }
 };
 
+
 void setup() {
+  strip.begin();
+  strip.show();
   Serial.begin(115200);
+  Serial.println("PLOPPPPPPP");
+  dht.begin();
+
+  int l = analogRead(lightPin);
+  for(int i=0;i<5;i++){
+    averageTreshold = averageTreshold + l;
+    delay(200);
+  }
+  averageTreshold /= 5;
 
   BLEDevice::init("iRUN");
   BLEServer *pServer = BLEDevice::createServer();
@@ -97,26 +120,78 @@ void setup() {
   pAdvertising->setScanResponseData(adv2);
 
   pAdvertising->start();
-  
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  count = count + 1;
-  uint8_t countt = count/10+48;
-  Serial.println(countt);
-  //String test = "toto";
+  delay(500);
+  uint8_t h = dht.readHumidity();
+  uint8_t t = dht.readTemperature();
+
+  int l = analogRead(lightPin);
+  int p = analogRead(PULSEPIN);
+  
+  int lightTreshold = 700 ;
+  
+  Serial.print(F("Humidity: "));
+  Serial.println(h);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(t);
+  Serial.println(F("°C "));
+  Serial.print(F("Luminosite: "));
+  Serial.print(l);
+  Serial.print(F("lightTreshold: "));
+  Serial.println(lightTreshold);
+  Serial.print(F("Pulse: "));
+  Serial.println(p); 
+  Serial.print(F("isOn: "));
+  Serial.println(isOn);
+
   //TMP
-  pCharacteristicTMP->setValue(&countt, 1);
+  //uint8_t tmp1d = t+48;
+  //uint8_t tmp2d = t%10+48;
+  char tmpString[8];
+  dtostrf(t, 1, 2, tmpString);
+  pCharacteristicTMP->setValue(tmpString);
   pCharacteristicTMP->notify();
   //PULSE
-  pCharacteristicPULSE->setValue("pulse");
+  p = p/30;
+  char pulseString[8];
+  dtostrf(p, 1, 2, pulseString);
+  pCharacteristicPULSE->setValue(pulseString);
   pCharacteristicPULSE->notify();
   //HUM
-  pCharacteristicHUM->setValue("hum");
+  char humString[8];
+  dtostrf(h, 1, 2, humString);
+  pCharacteristicHUM->setValue(humString);
   pCharacteristicHUM->notify();
   Serial.println("notified");
   
+  delay(500);
+
     
-  delay(2000);
+    
+//    if(isOn==1){
+//      lightTreshold += 130;
+//    }
+
+    if(l<lightTreshold){
+    //if(l<lightTreshold){
+        for(int i=0;i<NUMPIXELS;i++){
+        strip.setPixelColor(i, 50, 50, 50);
+        strip.show();
+        delay(15);
+        }
+        isOn = 1;
+    }
+    else{
+        for(int i=0;i<NUMPIXELS;i++){
+        strip.setPixelColor(i, 0, 0, 0);
+        strip.show();
+        delay(15);
+        }
+        isOn = 0;
+    }
+    
+    
+  
 }
