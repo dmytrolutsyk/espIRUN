@@ -60,7 +60,6 @@ void setup() {
   strip.begin();
   strip.show();
   Serial.begin(115200);
-  Serial.println("PLOPPPPPPP");
   dht.begin();
 
   int l = analogRead(lightPin);
@@ -123,28 +122,16 @@ void setup() {
 }
 
 void loop() {
-  delay(500);
+ 
   uint8_t h = dht.readHumidity();
   uint8_t t = dht.readTemperature();
 
   int l = analogRead(lightPin);
   int p = analogRead(PULSEPIN);
+  Serial.println(p);
   
   int lightTreshold = 700 ;
-  
-  Serial.print(F("Humidity: "));
-  Serial.println(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.println(F("°C "));
-  Serial.print(F("Luminosite: "));
-  Serial.print(l);
-  Serial.print(F("lightTreshold: "));
-  Serial.println(lightTreshold);
-  Serial.print(F("Pulse: "));
-  Serial.println(p); 
-  Serial.print(F("isOn: "));
-  Serial.println(isOn);
+ 
 
   //TMP
   //uint8_t tmp1d = t+48;
@@ -164,9 +151,9 @@ void loop() {
   dtostrf(h, 1, 2, humString);
   pCharacteristicHUM->setValue(humString);
   pCharacteristicHUM->notify();
-  Serial.println("notified");
-  
-  delay(500);
+
+
+  delay(10);
 
     
     
